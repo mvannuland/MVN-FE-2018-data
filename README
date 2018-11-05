@@ -1,0 +1,26 @@
+# Data file summary
+## M. Van Nuland, Nov. 2018
+
+These files contain data used in the analysis and figure generation associated with the following publication:
+
+Van Nuland, M.E., Ware, I.M., Bailey, J.K., & Schweitzer J.A. (2018) Ecosystem feedbacks contribute to geographic variation in plant-soil eco-evolutionary dynamics across a fertility gradient. Functional Ecology
+
+Below is a brief description for each file [relevant tables/figures in brackets].
+
+"Site, Plant trait, & Soil data.csv" - Environmental data, plant traits, and soil chemistry data collected from the field. [Associated with Table 1 and 2; Figures 1 and 2].
+
+"Bioinformatics workflow.txt" - Code to process raw sequence reads (NCBI Accession: PRJNA503728).
+
+"16S community data.csv" - Community data from OTU table. [Figure 1 and 2]
+
+"Phylum abundance data.csv" - Bacteria and Archaea phylum abundances [Figure 1 and 4]
+
+"Biomass growth data.csv" - Plant growth responses to the reciprocal transplant experiment. [Figure 3]
+
+"Post-experiment soil nitrogen data" - Soil nitrogen measured at the end of the reciprocal transplant experiment. [Figure 3]
+
+"Growth Fertilizer Exp" - Plant growth responses to fertilizer treatments in a separate experiment. [Supplemental information]
+
+"Growth PostExpSoilNitrogen" - Comparison of the amount of soil nitrogen at the end of the experiment to plant growth responses in the experiment. [Supplemental information]
+
+"Roots and mortality" - Additional data to test for effects of the reciprocal transplant on root traits and plant survival in the experiment.
