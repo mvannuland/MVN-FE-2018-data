@@ -1,0 +1,354 @@
+#####					#####
+#####	Van Nuland 16S analysis		#####
+#####	Populus soils sequenced at NAU	#####
+#####					#####
+
+
+# NOTES:
+
+# The following code assumes a successful install of akutils on ubuntu machine (https://github.com/alk224/akutils-v1.2/wiki)
+
+# ITS Data from UTK came already demultiplexed w/o index file (need to make synthetic one for downstream steps)
+
+# For any of the steps, see akutils github tutorials for further info on what code is doing
+
+
+****************  These are all the steps/downloads needed to process the code below  ********************
+
+1) Download and install Oracle VirtualBox (https://www.virtualbox.org/)
+
+2) Download Ubuntu 14.04.1 (http://old-releases.ubuntu.com/releases/14.04.0/ubuntu-14.04.1-desktop-amd64.iso)
+
+3) Start the virtualbox and install the .iso file (see instructions elsewhere, but basically make sure you give the VM enough RAM and storage to process fastq files. For instance, on my desktop I give it ~5GB of RAM and ~250GB of storage.)
+
+4) Open terminal and run the following command upon initial reboot to gain full-screen functionality:
+		sudo apt-get install virtualbox-guest-x11
+
+5) Reboot the VM instance
+
+6) Make any system customizations now, then proceed with akutils installation instructions below
+
+###
+
+7) Open terminal and issue the following commands (see akutils github for info on these steps and other functions):
+		cd  
+		sudo apt-get update  
+		sudo apt-get -yfm upgrade  
+		sudo apt-get install git  
+		git clone https://github.com/alk224/akutils_ubuntu_installer.git  
+		sudo bash ~/akutils_ubuntu_installer/akutils_ubuntu_installation.sh install (sometimes have to run this multiple times to get everything installed properly)
+
+8) Clone the akutils-v1.2 repository:
+		git clone https://github.com/alk224/akutils-v1.2.git
+
+9) Run the install script and add akutils to PATH and enable command autocompletion:
+		cd akutils-v1.2  
+ 		bash install
+
+
+You should be good to go at this point to begin data processing!
+
+############################################################################
+
+###  (first steps for ITS w/akutils are the same as 16S) 
+
+
+# If you haven't updated akutils in a while, go to akutils_ubuntu_installer directory and do a fresh git pull to update all akutils tools/scripts
+
+cd akutils_ubuntu_installer/
+git pull
+
+
+### Copy raw data folder (* always preserve your raw data!) to a new folder within the directory where you will perform the analysis (here named "raw_data" in the directory "Vannuland_16S_UTK/").
+
+mkdir raw_data/
+cp Read1 raw_data/
+cp Read2 raw_data/
+
+
+### Add primer sequeunce files to your working directory (This step is probably not necessary since seq. was performed with UTK vs NAU protocols).
+
+mkdir ./Desktop/Vannuland_16S_UTK/resources/
+cp ./QIIME_test_data_16S/resources/primers* ./Desktop/Vannuland_16S_UTK/resources/
+
+
+### Copy the gg_database from the QIIME_test_data_16S folder to your working directory, and copy the files from the resources folder to the gg_database folder
+
+cp -r ~/QIIME_test_data_16S/gg_database/ ./
+cp -r resources/primers.16S.ITS.fa ./gg_database/
+cp -r resources/primers_515F-806R.txt ./gg_database/
+
+
+### Navigate to your working directory (Vannuland_16S_UTK folder) and list the files; you should see the 4 important files - an index, R1 and R2 files (after you move them from the synthetic_index_out folder), and an appropriately QIIME-formatted mapping file. There should also be the gg_database and resources directories, plus the raw_data, fastqfiles, and synthetic_index_out directories.
+
+cd YourWorkingDirectory/
+ls -l
+
+
+### Format database for region of study (see akutils for details on why this is useful -- i.e. faster and better quality!)
+
+cd gg_database/
+akutils format_database 97_rep_set_1000.fasta 97_taxonomy_1000.txt primers_515F-806R.txt 250 ./
+
+
+### Set up akutils configuration file in the main working directory
+
+akutils configure
+
+**
+Fields to change (change $HOME to actual path on your system):
+Reference: $HOME/YourWorkingDirectory/gg_database/515f_806r_composite.fasta
+Taxonomy: $HOME/YourWorkingDirectory/gg_database/515f_806r_composite_taxonomy.txt
+Chimeras: $HOME/YourWorkingDirectory/gg_database/gold.fa
+Alignment_template: $HOME/YourWorkingDirectory/gg_database/core_set_aligned.fasta.imputed
+Alignment_lanemask: $HOME/YourWorkingDirectory/gg_database/lanemask_in_1s_and_0s
+CPU_cores: Enter number of processors you wish to use
+*** (You can also add the ITS ghost tree)
+
+
+### Check contents of config file
+
+akutils print_config
+
+	Reading akutils configurable fields from local config file.
+	File: akutils.20160907-1151AM.config
+
+	Split_libraries_qvalue	19
+	Split_libraries_minpercent	0.95
+	Split_libraries_maxbad	0
+	Reference	/home/michael/Desktop/Vannuland_16S_UTK/gg_database/515f_806r_composite.fasta
+	Taxonomy	/home/michael/Desktop/Vannuland_16S_UTK/gg_database/515f_806r_composite_taxonomy.txt
+	Tree	AUTO
+	Chimeras	/home/michael/Desktop/Vannuland_16S_UTK/gg_database/gold.fa
+	Prefix_length	100
+	Suffix_length	0
+	Multx_errors	1
+	Cutadapt_errors	0.1
+	OTU_picker	swarm
+	Tax_assigner	blast
+	Alignment_template	/home/michael/Desktop/Vannuland_16S_UTK/gg_database/core_set_aligned.fasta.imputed
+	Alignment_lanemask	/home/michael/Desktop/Vannuland_16S_UTK/gg_database/lanemask_in_1s_and_0s
+	ITSx_options	-t f --preserve T --anchor HMM --complement F
+	Rarefaction_depth	AUTO
+	CPU_cores	3
+
+
+### Make a primer file with the forward and reverse primers
+(find name of primer and reverse compliment [rc] primers used; info in mapping file)
+(Primers used in this study = 
+UTK_16S_f	CCTACGGGNGGCWGCAG
+UTK_16S_r	GACTACHVGGGTATCTAATCC)
+(to see a list of primer files available: akutils primer_list)
+
+akutils primer_file
+add
+UTK_16S_f
+CCTACGGGNGGCWGCAG
+
+* repeat these steps for UTK_16S_r primer
+
+
+### Strip primers from sequences
+(This will produce a new subdirectory called "strip_primers_out"; see specific instructions on 13 vs 15 vs 1B modes of strip primers)
+(inspect log file in the output directory to see a summary of primers stripped)
+
+akutils strip_primers 13 read1.fastq read2.fastq index.fastq
+
+
+=== Summary ===
+
+
+
+	(More info in log file if needed)
+
+
+### Remove PhiX contamination from your data
+
+*** Skipped this step because something is wrong and causing things to be out of phase (different file line lengths..)
+
+akutils phix_filtering phix_filtered/ map_Vannuland_16S_NAU.txt strip_primers_out_515Frc-806Rrc_3prime/index.noprimers.fastq strip_primers_out_515Frc-806Rrc_3prime/read1.noprimers.fastq strip_primers_out_515Frc-806Rrc_3prime/read2.noprimers.fastq
+
+	Processed 2410482 read pairs.
+	789 read pairs contained phix sequence.
+	Contamination level is approximately 1 percent.
+	Contamination level (decimal value): .0003273204
+
+
+
+
+### Join paired reads (Note, NAU and UTK indexes were 16 bp long, not the 12 golay codes QIIME expects. -m and -p 30s are the minimun overlap 30 bases and max mismatch 30%, respectively. You might need to adjust these based on your data's quality).
+
+akutils join_paired_reads strip_primers_out_515Frc-806Rrc_3prime/index.noprimers.fastq strip_primers_out_515Frc-806Rrc_3prime/read1.noprimers.fastq strip_primers_out_515Frc-806Rrc_3prime/read2.noprimers.fastq 16 -m 30 -p 30
+
+Fastq-join results:
+Total reads: 2410482
+Total joined: 2366379
+Average join len: 248.73
+Stdev join len: 3.68
+
+
+split_libraries_fastq.py -i join_paired_reads_out/rd.fq -b join_paired_reads_out/idx.fq -o split_libraries/ -m map_Vannuland_16S_NAU.txt -q 19 -p 0.80 -r 0 --barcode_type 16
+
+	Note: retained about 41% of data
+
+
+nano parameter_file.txt
+
+	pick_otus:swarm_resolution 4
+
+ctrl^O
+ctrl^X
+
+### Moved the important files to the 16S_processing directory (idx.fq, rd.fq, map) and then copy over the config file 
+
+
+### Pick OTUS
+
+akutils pick_OTUs 16S
+
+Filtering chimeras.
+Method: vsearch (uchime_ref)
+Reference: gold.fa
+Threads: 3
+Input sequences: 968611
+
+Identified 102997 chimeric sequences from 968611 input reads.
+	
+Dereplicating 865614 sequences with prefix/suffix picker.
+Input sequences: 865614
+Prefix length: 100
+Suffix length: 0
+	
+Picking rep set with prefix/suffix-collapsed OTU map.
+	
+Dereplicated from 865614 to 187095 sequences.
+	
+Beginning OTU picking (Swarm) at 1 resolution values.
+	
+Picking OTUs against collapsed rep set.
+Input sequences: 187095
+Method: SWARM (de novo)
+Swarm resolution: 4
+
+Merging OTU maps.
+		
+Picking rep set against merged OTU map.
+		
+Identified 133578 OTUs from 187095 input sequences.
+	
+Assigning taxonomy.
+Input sequences: 133578
+Method: BLAST on 3 cores.
+
+Sequential OTU picking steps completed (Swarm).
+
+Total runtime: 0 days 00 hours 27 minutes 34.9 seconds
+
+Building OTU tables in parallel.
+	
+Filtering away non-prokaryotic sequences.
+		
+Filtering away low count samples (<100 reads).
+	
+Final filtering steps.
+	
+Table filtering complete.
+
+OTU picking workflow steps complete.
+
+
+
+### Check the summary of the 05 table
+
+cat cdhit/OTU_tables_blast_taxonomy/005_table.summary
+
+Num samples: 42
+Num observations: 2647
+Total count: 585551
+Table density (fraction of non-zero values): 0.665
+
+Counts/sample summary:
+ Min: 10526.0
+ Max: 19125.0
+ Median: 13944.500
+ Mean: 13941.690
+ Std. dev.: 1856.993
+ Sample Metadata Categories: None provided
+ Observation Metadata Categories: taxonomy
+
+Counts/sample detail:
+20: 10526.0
+4: 10672.0
+24: 11177.0
+3: 11204.0
+28: 11391.0
+12: 11870.0
+18: 12207.0
+16: 12336.0
+8: 12376.0
+37: 12513.0
+19: 12527.0
+13: 12575.0
+2: 12618.0
+1: 12840.0
+36: 12856.0
+40: 13138.0
+11: 13144.0
+39: 13259.0
+6: 13276.0
+15: 13716.0
+9: 13851.0
+14: 14038.0
+38: 14095.0
+17: 14297.0
+42: 14401.0
+31: 14666.0
+22: 14782.0
+5: 14945.0
+7: 15057.0
+26: 15334.0
+34: 15383.0
+32: 15423.0
+30: 15445.0
+27: 15481.0
+29: 15569.0
+41: 15775.0
+21: 16183.0
+23: 16316.0
+10: 16338.0
+25: 16340.0
+33: 16486.0
+35: 19125.0
+
+
+### Align and make tree
+
+akutils align_and_tree 16S swarm_otus_d4/
+
+
+### Run the core diversity workflow
+
+akutils core_diversity cdhit_otus_0.97/OTU_tables_blast_taxonomy/005_table.biom map_Vannuland_16S_NAU.txt Location 3
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
